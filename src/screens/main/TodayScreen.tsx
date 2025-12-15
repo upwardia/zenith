@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring, withTiming, FadeInDown, Layout } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, withSpring, withTiming, FadeInDown, Layout, useSharedValue } from 'react-native-reanimated';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenWrapper } from '../../components/ScreenWrapper';
 import { Card } from '../../components/Card';
@@ -128,6 +128,18 @@ export const TodayScreen = () => {
   const progress = totalMissions > 0 ? (completedMissions / totalMissions) : 0;
   const remainingMissions = totalMissions - completedMissions;
 
+  const progressWidth = useSharedValue(0);
+
+  useEffect(() => {
+    progressWidth.value = withSpring(progress, { damping: 60, stiffness: 90 });
+  }, [progress]);
+
+  const animatedProgressStyle = useAnimatedStyle(() => {
+    return {
+      width: `${progressWidth.value * 100}%`,
+    };
+  });
+
   return (
     <ScreenWrapper safeArea className="bg-gray-50">
       <ScrollView
@@ -159,9 +171,7 @@ export const TodayScreen = () => {
             <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <Animated.View 
                 className="h-full bg-orange-500 rounded-full" 
-                style={{ 
-                  width: withTiming(`${Math.min(progress * 100, 100)}%`, { duration: 500 }) 
-                }} 
+                style={animatedProgressStyle} 
               />
             </View>
           </View>
