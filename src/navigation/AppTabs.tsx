@@ -1,6 +1,10 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { TodayScreen, MissionsScreen, WalletScreen, ProgressScreen, ProfileScreen } from '../screens/placeholders';
+import { TodayScreen } from '../screens/main/TodayScreen';
+import { MissionsScreen } from '../screens/main/MissionsScreen';
+import { WalletScreen } from '../screens/main/WalletScreen';
+import { ProgressScreen } from '../screens/main/ProgressScreen';
+import { ProfileScreen } from '../screens/main/ProfileScreen';
 import { LayoutDashboard, Target, Wallet, TrendingUp, User } from 'lucide-react-native';
 
 export type AppTabsParamList = {
