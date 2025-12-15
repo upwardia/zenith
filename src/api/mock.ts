@@ -90,12 +90,44 @@ export const MockAPI = {
     return data ? JSON.parse(data) : SEED_MILESTONES;
   },
 
+  async uncompleteMission(missionId: string): Promise<User> {
+    await delay(500);
+    const missionsStr = await AsyncStorage.getItem(STORAGE_KEYS.MISSIONS);
+    const userStr = await AsyncStorage.getItem(STORAGE_KEYS.USER);
+    
+    let missions: DailyMission[] = missionsStr ? JSON.parse(missionsStr) : SEED_MISSIONS;
+    let user: User = userStr ? JSON.parse(userStr) : SEED_USER;
+
+    const missionIndex = missions.findIndex(m => m.id === missionId);
+    if (missionIndex > -1 && missions[missionIndex].completed) {
+      missions[missionIndex].completed = false;
+      user.totalPoints -= missions[missionIndex].points;
+      user.missionsDone -= 1;
+      
+      // Remove transaction (or add a negative one)
+      const transactionsStr = await AsyncStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
+      let transactions: Transaction[] = transactionsStr ? JSON.parse(transactionsStr) : [];
+      // For simplicity, we'll add a negative transaction. A more robust solution might remove the original.
+      transactions.unshift({
+        id: Math.random().toString(36).substr(2, 9),
+        title: `Uncompleted: ${missions[missionIndex].title}`,
+        date: new Date().toISOString(),
+        delta: -missions[missionIndex].points
+      });
+
+      await AsyncStorage.setItem(STORAGE_KEYS.MISSIONS, JSON.stringify(missions));
+      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      await AsyncStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
+    }
+    return user;
+  },
+
   async completeMission(missionId: string): Promise<User> {
     await delay(500);
     const missionsStr = await AsyncStorage.getItem(STORAGE_KEYS.MISSIONS);
     const userStr = await AsyncStorage.getItem(STORAGE_KEYS.USER);
     
-    let missions: DailyMission[] = missionsStr ? JSON.parse(missionsStr) : [];
+    let missions: DailyMission[] = missionsStr ? JSON.parse(missionsStr) : SEED_MISSIONS;
     let user: User = userStr ? JSON.parse(userStr) : SEED_USER;
 
     const missionIndex = missions.findIndex(m => m.id === missionId);
@@ -126,7 +158,7 @@ export const MockAPI = {
     const rewardsStr = await AsyncStorage.getItem(STORAGE_KEYS.REWARDS);
     const userStr = await AsyncStorage.getItem(STORAGE_KEYS.USER);
     
-    const rewards: Reward[] = rewardsStr ? JSON.parse(rewardsStr) : [];
+    const rewards: Reward[] = rewardsStr ? JSON.parse(rewardsStr) : SEED_REWARDS;
     let user: User = userStr ? JSON.parse(userStr) : SEED_USER;
 
     const reward = rewards.find(r => r.id === rewardId);

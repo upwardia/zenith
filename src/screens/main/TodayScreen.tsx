@@ -9,7 +9,8 @@ import { MockAPI } from '../../api/mock';
 import { useToast } from '../../components/Toast';
 import { Flame, CheckCircle, Circle, Clock } from 'lucide-react-native';
 import { clsx } from 'clsx';
-import { DailyMission } from '../../types';
+import { DailyMission, User } from '../../types';
+// Import only what is needed
 
 export const TodayScreen = () => {
   const { user } = useAuthStore();
@@ -29,12 +30,92 @@ export const TodayScreen = () => {
 
   const completeMissionMutation = useMutation({
     mutationFn: MockAPI.completeMission,
-    onSuccess: (updatedUser) => {
-      queryClient.setQueryData(['user'], updatedUser);
-      queryClient.invalidateQueries({ queryKey: ['missions'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      toast.show('Mission completed! Points added.', 'success');
+    onMutate: async (missionId) => {
+      // Cancel data refetches
+      await queryClient.cancelQueries({ queryKey: ['user'] });
+      await queryClient.cancelQueries({ queryKey: ['missions'] });
+
+      // Snapshot previous value
+      const previousUser = queryClient.getQueryData<User>(['user']);
+      const previousMissions = queryClient.getQueryData<DailyMission[]>(['missions']);
+
+      // Optimistically update missions
+      if (previousMissions) {
+        queryClient.setQueryData<DailyMission[]>(['missions'], (old) => 
+          old?.map(m => m.id === missionId ? { ...m, completed: true } : m)
+        );
+      }
+
+      // Optimistically update user
+      if (previousUser && previousMissions) {
+        const mission = previousMissions.find(m => m.id === missionId);
+        if (mission) {
+          queryClient.setQueryData<User>(['user'], (old) => old ? ({
+            ...old,
+            totalPoints: old.totalPoints + mission.points,
+            missionsDone: old.missionsDone + 1,
+          }) : old);
+        }
+      }
+
+      return { previousUser, previousMissions };
     },
+    onError: (err, newTodo, context) => {
+      queryClient.setQueryData(['user'], context?.previousUser);
+      queryClient.setQueryData(['missions'], context?.previousMissions);
+      toast.show('Failed to sync. Reverted.', 'error');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['missions'] });
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    },
+    onSuccess: () => {
+       toast.show('Mission completed! Points added.', 'success');
+    }
+  });
+
+  const uncompleteMissionMutation = useMutation({
+    mutationFn: MockAPI.uncompleteMission,
+    onMutate: async (missionId) => {
+      await queryClient.cancelQueries({ queryKey: ['user'] });
+      await queryClient.cancelQueries({ queryKey: ['missions'] });
+
+      const previousUser = queryClient.getQueryData<User>(['user']);
+      const previousMissions = queryClient.getQueryData<DailyMission[]>(['missions']);
+
+      if (previousMissions) {
+        queryClient.setQueryData<DailyMission[]>(['missions'], (old) => 
+          old?.map(m => m.id === missionId ? { ...m, completed: false } : m)
+        );
+      }
+
+      if (previousUser && previousMissions) {
+        const mission = previousMissions.find(m => m.id === missionId);
+        if (mission) {
+           queryClient.setQueryData<User>(['user'], (old) => old ? ({
+            ...old,
+            totalPoints: old.totalPoints - mission.points,
+            missionsDone: old.missionsDone - 1,
+          }) : old);
+        }
+      }
+
+      return { previousUser, previousMissions };
+    },
+    onError: (err, newTodo, context) => {
+      queryClient.setQueryData(['user'], context?.previousUser);
+      queryClient.setQueryData(['missions'], context?.previousMissions);
+      toast.show('Failed to sync. Reverted.', 'error');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['missions'] });
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    },
+    onSuccess: () => {
+      toast.show('Mission undone. Points reverted.', 'info');
+    }
   });
 
   const onRefresh = async () => {
@@ -104,7 +185,9 @@ export const TodayScreen = () => {
               key={mission.id} 
               mission={mission} 
               onComplete={() => completeMissionMutation.mutate(mission.id)}
+              onUndo={() => uncompleteMissionMutation.mutate(mission.id)}
               isCompleting={completeMissionMutation.isPending && completeMissionMutation.variables === mission.id}
+              isUndoing={uncompleteMissionMutation.isPending && uncompleteMissionMutation.variables === mission.id}
             />
           ))}
         </View>
@@ -113,7 +196,7 @@ export const TodayScreen = () => {
   );
 };
 
-const MissionCard = ({ mission, onComplete, isCompleting }: { mission: DailyMission, onComplete: () => void, isCompleting: boolean }) => {
+const MissionCard = ({ mission, onComplete, onUndo, isCompleting, isUndoing }: { mission: DailyMission, onComplete: () => void, onUndo: () => void, isCompleting: boolean, isUndoing: boolean }) => {
   return (
     <Card className={clsx("flex-row items-center p-4", mission.completed && "opacity-60 bg-gray-50")}>
       <View className={clsx("w-10 h-10 rounded-full items-center justify-center mr-3", mission.completed ? "bg-green-100" : "bg-orange-100")}>
@@ -135,13 +218,21 @@ const MissionCard = ({ mission, onComplete, isCompleting }: { mission: DailyMiss
         </View>
       </View>
 
-      {!mission.completed && (
+      {!mission.completed ? (
         <Button
-          title="Start"
+          title="Mark Done"
           onPress={onComplete}
           isLoading={isCompleting}
           variant="secondary"
           className="h-9 px-3 rounded-lg"
+        />
+      ) : (
+        <Button
+          title="Undo"
+          onPress={onUndo}
+          isLoading={isUndoing}
+          variant="ghost"
+          className="h-9 px-3 rounded-lg bg-gray-100"
         />
       )}
     </Card>
