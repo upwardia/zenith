@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import Animated, { useAnimatedStyle, withSpring, withTiming, FadeInDown, Layout } from 'react-native-reanimated';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ScreenWrapper } from '../../components/ScreenWrapper';
 import { Card } from '../../components/Card';
@@ -152,13 +153,15 @@ export const TodayScreen = () => {
           <View className="mb-2">
             <View className="flex-row justify-between mb-1">
               <Text className="text-gray-600 font-medium">
-                {userData?.dailyPointsGoal ? Math.min(userData.totalPoints % 1000, userData.dailyPointsGoal) : 0} / {userData?.dailyPointsGoal} points
+                {completedMissions} / {totalMissions} missions
               </Text>
             </View>
             <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <View 
+              <Animated.View 
                 className="h-full bg-orange-500 rounded-full" 
-                style={{ width: `${Math.min((userData?.totalPoints || 0) % 1000 / (userData?.dailyPointsGoal || 100) * 100, 100)}%` }} 
+                style={{ 
+                  width: withTiming(`${Math.min(progress * 100, 100)}%`, { duration: 500 }) 
+                }} 
               />
             </View>
           </View>
@@ -180,15 +183,20 @@ export const TodayScreen = () => {
         <Text className="text-xl font-bold text-gray-900 mb-4">Today's Missions</Text>
         
         <View className="gap-4 pb-8">
-          {missions?.map((mission) => (
-            <MissionCard 
-              key={mission.id} 
-              mission={mission} 
-              onComplete={() => completeMissionMutation.mutate(mission.id)}
-              onUndo={() => uncompleteMissionMutation.mutate(mission.id)}
-              isCompleting={completeMissionMutation.isPending && completeMissionMutation.variables === mission.id}
-              isUndoing={uncompleteMissionMutation.isPending && uncompleteMissionMutation.variables === mission.id}
-            />
+          {missions?.map((mission, index) => (
+            <Animated.View 
+              key={mission.id}
+              entering={FadeInDown.delay(index * 100).springify()}
+              layout={Layout.springify()}
+            >
+              <MissionCard 
+                mission={mission} 
+                onComplete={() => completeMissionMutation.mutate(mission.id)}
+                onUndo={() => uncompleteMissionMutation.mutate(mission.id)}
+                isCompleting={completeMissionMutation.isPending && completeMissionMutation.variables === mission.id}
+                isUndoing={uncompleteMissionMutation.isPending && uncompleteMissionMutation.variables === mission.id}
+              />
+            </Animated.View>
           ))}
         </View>
       </ScrollView>
@@ -219,21 +227,25 @@ const MissionCard = ({ mission, onComplete, onUndo, isCompleting, isUndoing }: {
       </View>
 
       {!mission.completed ? (
-        <Button
-          title="Mark Done"
-          onPress={onComplete}
-          isLoading={isCompleting}
-          variant="secondary"
-          className="h-9 px-3 rounded-lg"
-        />
+        <Animated.View entering={FadeInDown.springify()} exiting={FadeInDown.springify()}>
+          <Button
+            title="Mark Done"
+            onPress={onComplete}
+            isLoading={isCompleting}
+            variant="secondary"
+            className="h-9 px-3 rounded-lg"
+          />
+        </Animated.View>
       ) : (
-        <Button
-          title="Undo"
-          onPress={onUndo}
-          isLoading={isUndoing}
-          variant="ghost"
-          className="h-9 px-3 rounded-lg bg-gray-100"
-        />
+        <Animated.View entering={FadeInDown.springify()} exiting={FadeInDown.springify()}>
+          <Button
+            title="Undo"
+            onPress={onUndo}
+            isLoading={isUndoing}
+            variant="ghost"
+            className="h-9 px-3 rounded-lg bg-gray-100"
+          />
+        </Animated.View>
       )}
     </Card>
   );
