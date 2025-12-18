@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User, Mission, DailyMission, Transaction, Reward, Milestone } from '../types';
+import { User, DailyMission, Transaction, Reward, Milestone } from '../types';
 
 const STORAGE_KEYS = {
   USER: 'upwardia_user',
@@ -21,10 +21,12 @@ const SEED_USER: User = {
 };
 
 const SEED_MISSIONS: DailyMission[] = [
-  { id: 'm1', category: 'Health', title: 'Morning Walk', durationMin: 15, points: 50, difficulty: 'Easy', icon: 'footprints', completed: true },
-  { id: 'm2', category: 'Health', title: 'Drink Water', durationMin: 0, points: 10, difficulty: 'Easy', icon: 'droplet', completed: false },
-  { id: 'm3', category: 'Mind', title: 'Meditation', durationMin: 10, points: 30, difficulty: 'Medium', icon: 'brain', completed: false },
-  { id: 'm4', category: 'Money', title: 'Check Budget', durationMin: 5, points: 20, difficulty: 'Easy', icon: 'wallet', completed: false },
+  { id: 'm1', category: 'Health', title: 'Morning Walk', durationMin: 15, points: 50, difficulty: 'Easy', icon: 'footprints', completed: true, addedToToday: true },
+  { id: 'm2', category: 'Health', title: 'Drink Water', durationMin: 0, points: 10, difficulty: 'Easy', icon: 'droplet', completed: false, addedToToday: true },
+  { id: 'm3', category: 'Mind', title: 'Meditation', durationMin: 10, points: 30, difficulty: 'Medium', icon: 'brain', completed: false, addedToToday: true },
+  { id: 'm4', category: 'Money', title: 'Check Budget', durationMin: 5, points: 20, difficulty: 'Easy', icon: 'wallet', completed: false, addedToToday: true },
+  { id: 'm5', category: 'Family', title: 'Call Mom', durationMin: 20, points: 40, difficulty: 'Easy', icon: 'phone', completed: false, addedToToday: false },
+  { id: 'm6', category: 'Mind', title: 'Read Book', durationMin: 30, points: 60, difficulty: 'Medium', icon: 'book', completed: false, addedToToday: false },
 ];
 
 const SEED_TRANSACTIONS: Transaction[] = [
@@ -183,5 +185,44 @@ export const MockAPI = {
       }
     }
     return user;
+  },
+
+  async updateUser(updates: Partial<User>): Promise<User> {
+    await delay(500);
+    const userStr = await AsyncStorage.getItem(STORAGE_KEYS.USER);
+    let user: User = userStr ? JSON.parse(userStr) : SEED_USER;
+    
+    user = { ...user, ...updates };
+    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+    return user;
+  },
+
+  async inviteMember(email: string): Promise<void> {
+    await delay(1000);
+    // In a real app, this would send an email
+    // For mock, we just resolve successfully
+  },
+
+  async updateNotificationSettings(settings: any): Promise<void> {
+    await delay(300);
+    // Mock persisting settings
+  },
+
+  async contactSupport(message: string): Promise<void> {
+    await delay(1000);
+    // Mock sending support message
+  },
+
+  async addToToday(missionId: string): Promise<void> {
+    await delay(500);
+    const missionsStr = await AsyncStorage.getItem(STORAGE_KEYS.MISSIONS);
+    let missions: DailyMission[] = missionsStr ? JSON.parse(missionsStr) : SEED_MISSIONS;
+
+    const existingIndex = missions.findIndex(m => m.id === missionId);
+    
+    if (existingIndex > -1) {
+        missions[existingIndex].addedToToday = true;
+        await AsyncStorage.setItem(STORAGE_KEYS.MISSIONS, JSON.stringify(missions));
+    }
   }
 };

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenWrapper } from '../../components/ScreenWrapper';
 import { Card } from '../../components/Card';
@@ -9,6 +10,7 @@ import { clsx } from 'clsx';
 import { Trophy, Lock, CheckCircle, HelpCircle } from 'lucide-react-native';
 
 export const ProgressScreen = () => {
+  const navigation = useNavigation<any>();
   const { data: milestones, isLoading, refetch } = useQuery({
     queryKey: ['milestones'],
     queryFn: MockAPI.getMilestones,
@@ -69,10 +71,12 @@ export const ProgressScreen = () => {
         </View>
 
         {/* Support */}
-        <Card className="mb-8 items-center p-6 bg-gray-100">
-          <Text className="font-bold text-gray-700 mb-1">Questions about your progress?</Text>
-          <Text className="text-orange-500 font-medium">Contact Support</Text>
-        </Card>
+        <TouchableOpacity onPress={() => navigation.navigate('Support')}>
+            <Card className="mb-8 items-center p-6 bg-gray-100">
+                <Text className="font-bold text-gray-700 mb-1">Questions about your progress?</Text>
+                <Text className="text-orange-500 font-medium">Contact Support</Text>
+            </Card>
+        </TouchableOpacity>
       </ScrollView>
     </ScreenWrapper>
   );

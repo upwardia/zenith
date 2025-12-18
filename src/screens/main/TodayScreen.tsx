@@ -123,8 +123,9 @@ export const TodayScreen = () => {
     await Promise.all([refetchUser(), refetchMissions()]);
   };
 
-  const completedMissions = missions?.filter(m => m.completed).length || 0;
-  const totalMissions = missions?.length || 0;
+  const dailyMissions = missions?.filter(m => m.addedToToday) || [];
+  const completedMissions = dailyMissions.filter(m => m.completed).length || 0;
+  const totalMissions = dailyMissions.length || 0;
   const progress = totalMissions > 0 ? (completedMissions / totalMissions) : 0;
   const remainingMissions = totalMissions - completedMissions;
 
@@ -193,7 +194,7 @@ export const TodayScreen = () => {
         <Text className="text-xl font-bold text-gray-900 mb-4">Today's Missions</Text>
         
         <View className="gap-4 pb-8">
-          {missions?.map((mission, index) => (
+          {dailyMissions.map((mission, index) => (
             <Animated.View 
               key={mission.id}
               entering={FadeInDown.delay(index * 100).springify()}

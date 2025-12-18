@@ -23,6 +23,7 @@ export interface Mission {
 
 export interface DailyMission extends Mission {
   completed: boolean;
+  addedToToday?: boolean;
 }
 
 export interface Transaction {

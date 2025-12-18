@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'; // Added imports
 import { ScreenWrapper } from '../../components/ScreenWrapper';
 import { Card } from '../../components/Card';
+import { Button } from '../../components/Button'; 
+import { useToast } from '../../components/Toast';
 import { MockAPI } from '../../api/mock';
-import { MissionCategory, Mission } from '../../types';
+import { MissionCategory, DailyMission } from '../../types'; // Update type import
 import { clsx } from 'clsx';
 import { CheckCircle, Clock, Zap, Brain, Heart, Wallet } from 'lucide-react-native';
 
@@ -13,14 +15,25 @@ const CATEGORIES: MissionCategory[] = ['Health', 'Money', 'Mind'];
 export const MissionsScreen = () => {
   const [selectedCategory, setSelectedCategory] = useState<MissionCategory>('Health');
 
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
   const { data: missions } = useQuery({
-    queryKey: ['missions'], // Reusing missions query for simplicity, though ideally separate library
+    queryKey: ['missions'],
     queryFn: MockAPI.getMissions,
   });
 
   const { data: user } = useQuery({
     queryKey: ['user'],
     queryFn: MockAPI.getUser,
+  });
+
+  const addToTodayMutation = useMutation({
+    mutationFn: MockAPI.addToToday,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['missions'] });
+      toast.show('Added to Today!', 'success');
+    }
   });
 
   const filteredMissions = missions?.filter(m => m.category === selectedCategory) || [];
@@ -75,9 +88,22 @@ export const MissionsScreen = () => {
       {/* Mission List */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-20">
         <View className="gap-4">
-          {filteredMissions.map((mission) => (
-            <LibraryMissionCard key={mission.id} mission={mission} />
-          ))}
+          {filteredMissions.length > 0 ? (
+            filteredMissions.map((mission) => (
+              <LibraryMissionCard 
+                  key={mission.id} 
+                  mission={mission} 
+                  onAdd={() => addToTodayMutation.mutate(mission.id)}
+                  isAdded={!!mission.addedToToday}
+                  isAdding={addToTodayMutation.isPending && addToTodayMutation.variables === mission.id}
+              />
+            ))
+          ) : (
+            <View className="items-center py-8">
+              <Text className="text-gray-400 text-center mb-2">No missions found for {selectedCategory}</Text>
+              <Text className="text-gray-300 text-sm text-center">Check back later for new {selectedCategory.toLowerCase()} challenges!</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </ScreenWrapper>
@@ -94,7 +120,7 @@ const SummaryCard = ({ label, value, icon, color }: { label: string, value: stri
   </View>
 );
 
-const LibraryMissionCard = ({ mission }: { mission: Mission }) => {
+const LibraryMissionCard = ({ mission, onAdd, isAdded, isAdding }: { mission: DailyMission, onAdd: () => void, isAdded: boolean, isAdding: boolean }) => {
   const getIcon = () => {
     switch (mission.category) {
       case 'Health': return <Heart size={20} color="#ef4444" />;
@@ -121,16 +147,33 @@ const LibraryMissionCard = ({ mission }: { mission: Mission }) => {
           </View>
         </View>
       </View>
-      <View className={clsx(
-        "px-2 py-1 rounded-lg",
-        mission.difficulty === 'Easy' ? "bg-green-100" : mission.difficulty === 'Medium' ? "bg-yellow-100" : "bg-red-100"
-      )}>
-        <Text className={clsx(
-          "text-xs font-medium",
-          mission.difficulty === 'Easy' ? "text-green-700" : mission.difficulty === 'Medium' ? "text-yellow-700" : "text-red-700"
+
+      <View className="items-end gap-2">
+        <View className={clsx(
+            "px-2 py-1 rounded-lg self-end",
+            mission.difficulty === 'Easy' ? "bg-green-100" : mission.difficulty === 'Medium' ? "bg-yellow-100" : "bg-red-100"
         )}>
-          {mission.difficulty}
-        </Text>
+            <Text className={clsx(
+            "text-xs font-medium",
+            mission.difficulty === 'Easy' ? "text-green-700" : mission.difficulty === 'Medium' ? "text-yellow-700" : "text-red-700"
+            )}>
+            {mission.difficulty}
+            </Text>
+        </View>
+        {!isAdded ? (
+            <Button
+                title="Add"
+                onPress={onAdd}
+                isLoading={isAdding}
+                className="h-8 px-4 py-0"
+                variant="outline"
+            />
+        ) : (
+            <View className="flex-row items-center h-8">
+                <CheckCircle size={14} color="#16a34a" />
+                <Text className="text-xs text-green-600 font-bold ml-1">Added</Text>
+            </View>
+        )}
       </View>
     </Card>
   );

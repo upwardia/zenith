@@ -99,17 +99,25 @@ export const WalletScreen = () => {
         {/* Content */}
         <View className="gap-4 pb-20">
           {activeTab === 'transactions' ? (
-            transactions?.map((t) => <TransactionItem key={t.id} transaction={t} />)
+            transactions && transactions.length > 0 ? (
+                transactions.map((t) => <TransactionItem key={t.id} transaction={t} />)
+            ) : (
+                <EmptyWalletState message="No transactions yet" subMessage="Complete missions to earn points!" />
+            )
           ) : (
-            rewards?.map((r) => (
-              <RewardItem 
-                key={r.id} 
-                reward={r} 
-                userPoints={user?.totalPoints || 0}
-                onRedeem={() => redeemMutation.mutate(r.id)}
-                isRedeeming={redeemMutation.isPending && redeemMutation.variables === r.id}
-              />
-            ))
+            rewards && rewards.length > 0 ? (
+                rewards.map((r) => (
+                <RewardItem 
+                    key={r.id} 
+                    reward={r} 
+                    userPoints={user?.totalPoints || 0}
+                    onRedeem={() => redeemMutation.mutate(r.id)}
+                    isRedeeming={redeemMutation.isPending && redeemMutation.variables === r.id}
+                />
+                ))
+            ) : (
+                <EmptyWalletState message="No rewards available" subMessage="Check back later for new rewards!" />
+            )
           )}
         </View>
       </ScrollView>
@@ -165,3 +173,13 @@ const RewardItem = ({ reward, userPoints, onRedeem, isRedeeming }: { reward: Rew
     </Card>
   );
 };
+
+const EmptyWalletState = ({ message, subMessage }: { message: string, subMessage: string }) => (
+    <View className="items-center justify-center py-10">
+        <View className="w-16 h-16 bg-gray-100 rounded-full items-center justify-center mb-4">
+            <ShoppingBag size={32} color="#9ca3af" />
+        </View>
+        <Text className="text-gray-500 font-bold text-lg mb-1">{message}</Text>
+        <Text className="text-gray-400 text-sm">{subMessage}</Text>
+    </View>
+);

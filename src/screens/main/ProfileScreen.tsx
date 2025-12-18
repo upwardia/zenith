@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { ScreenWrapper } from '../../components/ScreenWrapper';
 import { Card } from '../../components/Card';
@@ -13,6 +14,7 @@ import { User, ChevronRight, Settings, Users, Bell, HelpCircle, LogOut } from 'l
 export const ProfileScreen = () => {
   const { logout } = useAuthStore();
   const toast = useToast();
+  const navigation = useNavigation<any>();
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -55,10 +57,10 @@ export const ProfileScreen = () => {
 
         {/* Menu */}
         <View className="bg-white rounded-2xl overflow-hidden mb-6">
-          <MenuItem icon={<User size={20} color="#4b5563" />} title="Personal Information" onPress={showComingSoon} />
-          <MenuItem icon={<Users size={20} color="#4b5563" />} title="Household Members" onPress={showComingSoon} />
-          <MenuItem icon={<Bell size={20} color="#4b5563" />} title="Notifications" onPress={showComingSoon} />
-          <MenuItem icon={<HelpCircle size={20} color="#4b5563" />} title="Help & Support" onPress={showComingSoon} last />
+          <MenuItem icon={<User size={20} color="#4b5563" />} title="Personal Information" onPress={() => navigation.navigate('ProfileEdit')} />
+          <MenuItem icon={<Users size={20} color="#4b5563" />} title="Household Members" onPress={() => navigation.navigate('Household')} />
+          <MenuItem icon={<Bell size={20} color="#4b5563" />} title="Notifications" onPress={() => navigation.navigate('Notifications')} />
+          <MenuItem icon={<HelpCircle size={20} color="#4b5563" />} title="Help & Support" onPress={() => navigation.navigate('Support')} last />
         </View>
 
         <Button
